@@ -1,6 +1,6 @@
 dataset:
   name: KITTI
-  dataset_path: ../Data/v2_data # path/to/your/dataset
+  dataset_path: ../Data/KITTI # path/to/your/dataset
   cache_dir: ./logs/cache
   steps_per_epoch_train: 5000
 

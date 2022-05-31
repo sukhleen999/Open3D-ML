@@ -1,6 +1,6 @@
 dataset:
   name: KITTI
-  dataset_path: ../Data/Kitti # path/to/your/dataset
+  dataset_path: ../Data/KITTI_OPEN # path/to/your/dataset
   cache_dir: ./logs/cache
   steps_per_epoch_train: 5000
 
@@ -12,7 +12,7 @@ model:
   batcher: "ignore"
 
   point_cloud_range: [0, -39.68, -3, 69.12, 39.68, 1]
-  classes: ['Pedestrian', 'Car']
+  classes: ['Pedestrian', 'Cyclist', 'Car']
 
   loss:
     focal:
@@ -26,7 +26,7 @@ model:
       loss_weight: 0.2
 
   voxelize:
-    max_num_points: 32
+    max_num_points: 80
     voxel_size: &vsize
       [0.16, 0.16, 4]
     max_voxels: [16000, 40000]
@@ -59,11 +59,12 @@ model:
     score_thr: 0.1
     ranges: [
       [0, -39.68, -0.6, 70.4, 39.68, -0.6],
+      [0, -39.68, -0.6, 70.4, 39.68, -0.6],
       [0, -39.68, -1.78, 70.4, 39.68, -1.78]
     ]
-    sizes: [[0.6, 0.8, 1.73], [1.6, 3.9, 1.56]]
+    sizes: [[0.6, 0.8, 1.73], [0.6, 1.76, 1.73], [1.6, 3.9, 1.56]]
     rotations: [0, 1.57]
-    iou_thr: [[0.35, 0.5], [0.45, 0.6]]
+    iou_thr: [[0.35, 0.5], [0.35, 0.5], [0.45, 0.6]]
 
   augment:
     PointShuffle: True
@@ -73,9 +74,11 @@ model:
       min_points_dict:
         Car: 5
         Pedestrian: 10
+        Cyclist: 10
       sample_dict:
         Car: 15
         Pedestrian: 10
+        Cyclist: 10
 
 
 pipeline:
@@ -96,7 +99,7 @@ pipeline:
     weight_decay: 0.01
 
   # evaluation properties
-  overlaps: [0.5, 0.7]
+  overlaps: [0.5, 0.5, 0.7]
   similar_classes: {
     Van: Car,
     Person_sitting: Pedestrian
