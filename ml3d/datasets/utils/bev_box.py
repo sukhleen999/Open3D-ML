@@ -74,9 +74,10 @@ class BEVBox3D(BoundingBox3D):
         beta = np.arctan2(z, x)
         alpha = -np.sign(beta) * np.pi / 2 + beta + ry
 
+        # # adjust x and z axis (camera) back to carpark location
         kitti_str = '%s %.2f %d %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f' \
-                    % (self.label_class, truncation, occlusion, alpha, box2d[0], box2d[1],
-                       box2d[2], box2d[3], size[0], size[1], size[2], center[0], center[1], center[2],
+                    % (self.label_class, 0, 0, 0, 0, 0,
+                       0, 0, size[0], size[1], size[2], center[0]-12, center[1], center[2]+4,
                        ry, score)
         return kitti_str
 
@@ -185,6 +186,8 @@ class BEVBox3D(BoundingBox3D):
             if height >= heights[j]:
                 diff = j
                 break
+        # add difficulty for carpark
+        diff = 3
         return diff
 
     def to_dict(self):
