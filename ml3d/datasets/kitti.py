@@ -55,18 +55,26 @@ class KITTI(BaseDataset):
         self.num_classes = 2
         self.label_to_names = self.get_label_to_names()
 
-        self.all_files = glob(
-            join(cfg.dataset_path, 'training', 'velodyne', '*.bin'))
-        self.all_files.sort()
-        self.train_files = []
-        self.val_files = []
+        # self.all_files = glob(
+        #     join(cfg.dataset_path, 'training', 'velodyne', '*.bin'))
+        # self.all_files.sort()
+        # self.train_files = []
+        # self.val_files = []
 
-        for f in self.all_files:
-            idx = int(Path(f).name.replace('.bin', ''))
-            if idx < cfg.val_split:
-                self.train_files.append(f)
-            else:
-                self.val_files.append(f)
+        # for f in self.all_files:
+        #     idx = int(Path(f).name.replace('.bin', ''))
+        #     if idx < cfg.val_split:
+        #         self.train_files.append(f)
+        #     else:
+        #         self.val_files.append(f)
+
+        self.train_files = glob(
+            join(cfg.dataset_path, 'training', 'velodyne', '*.bin'))
+        self.train_files.sort()
+
+        self.val_files = glob(
+            join(cfg.dataset_path, 'validation', 'velodyne', '*.bin'))
+        self.val_files.sort()        
 
         self.test_files = glob(
             join(cfg.dataset_path, 'testing', 'velodyne', '*.bin'))
@@ -183,6 +191,7 @@ class KITTI(BaseDataset):
         """
         assert Path(path).exists()
 
+
         with open(path, 'r') as f:
             lines = f.readlines()
 
@@ -291,6 +300,7 @@ class KITTISplit():
     def __init__(self, dataset, split='train'):
         self.cfg = dataset.cfg
         path_list = dataset.get_split_list(split)
+        log.info("Using custom dataset for Reliance")
         log.info("Found {} pointclouds for {}".format(len(path_list), split))
 
         self.path_list = path_list
@@ -381,8 +391,11 @@ class Object3d(BEVBox3D):
             self.level_str = 'Hard'
             return 2  # Hard
         # Add custom difficulity for data without first 7 values in kitti label files
+        elif height >=1 and self.truncation == 0 and self.occlusion == 0:
+            self.level_str = 'No Image'
+            return 3
         else:
-            self.level_str = 'Custom'
+            self.level_str = 'UnKnown'
             return -1
 
     def to_str(self):
