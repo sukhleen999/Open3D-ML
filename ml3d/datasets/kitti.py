@@ -23,7 +23,7 @@ class KITTI(BaseDataset):
                  name='KITTI',
                  cache_dir='./logs/cache',
                  use_cache=False,
-                 val_split=2500,
+                 val_split=2030,
                  test_result_folder='./test',
                  **kwargs):
         """Initialize the function by passing the dataset and other details.
@@ -383,7 +383,7 @@ class Object3d(BEVBox3D):
         # Add custom difficulity for data without first 7 values in kitti label files
         else:
             self.level_str = 'Custom'
-            return 3
+            return -1
 
     def to_str(self):
         print_str = '%s %.3f %.3f %.3f box2d: %s hwl: [%.3f %.3f %.3f] pos: %s ry: %.3f' \
