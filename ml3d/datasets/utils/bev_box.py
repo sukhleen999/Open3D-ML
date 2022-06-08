@@ -186,8 +186,6 @@ class BEVBox3D(BoundingBox3D):
             if height >= heights[j]:
                 diff = j
                 break
-        # add difficulty for carpark
-        diff = 3
         return diff
 
     def to_dict(self):

@@ -101,7 +101,7 @@ pipeline:
     Van: Car,
     Person_sitting: Pedestrian
   }
-  difficulties: [3]
+  difficulties: [-1]
   summary:
     record_for: []
     max_pts:
