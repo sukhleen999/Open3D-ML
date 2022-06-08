@@ -23,7 +23,7 @@ class KITTI(BaseDataset):
                  name='KITTI',
                  cache_dir='./logs/cache',
                  use_cache=False,
-                 val_split=3712,
+                 val_split=2500,
                  test_result_folder='./test',
                  **kwargs):
         """Initialize the function by passing the dataset and other details.
@@ -52,7 +52,7 @@ class KITTI(BaseDataset):
 
         self.name = cfg.name
         self.dataset_path = cfg.dataset_path
-        self.num_classes = 3
+        self.num_classes = 2
         self.label_to_names = self.get_label_to_names()
 
         self.all_files = glob(
@@ -80,13 +80,12 @@ class KITTI(BaseDataset):
             A dict where keys are label numbers and values are the corresponding
             names.
         """
+
+        # change classes
         label_to_names = {
-            0: 'Pedestrian',
-            1: 'Cyclist',
-            2: 'Car',
-            3: 'Van',
-            4: 'Person_sitting',
-            5: 'DontCare'
+            0: 'human',
+            1: 'car',
+            2: 'DontCare'
         }
         return label_to_names
 
@@ -98,7 +97,40 @@ class KITTI(BaseDataset):
             A data object with lidar information.
         """
         assert Path(path).exists()
-        return np.fromfile(path, dtype=np.float32).reshape(-1, 4)
+
+        # downsample ground points between -1 and 0.12
+        data = np.fromfile(path, dtype=np.float32).reshape(-1, 4)
+
+        data_g = data[np.where(
+                    np.logical_and(data[:, 2] >= -1,
+                                        data[:, 2] < 0.12),
+                        )]
+
+        data_g = data_g[::150]
+
+        # set ground points intensity to 5000 maximizing contrasts
+        data_g[:,3]=5000
+
+        # all remaining points above ground
+        data = data[np.where(
+                np.logical_and(data[:, 2] >= 0.12,
+                                    data[:, 2] < 100),
+                    )]
+
+        # merge data
+        data = np.concatenate([data, data_g])
+
+        # normalize intensity
+        quantile = 95
+        intensities = data[:, 3]
+        intensity_scaler = np.quantile(intensities, quantile*1e-2)
+        data[:,3] = np.array([x if x <=1 else 1 for x in intensities / intensity_scaler])
+        
+        # adjust x and y axis (velodyne) to centre
+        data[:, 0] = data[:, 0] - 4
+        data[:, 1] = data[:, 1] - 12
+
+        return data
 
     @staticmethod
     def read_label(path, calib):
@@ -123,6 +155,10 @@ class KITTI(BaseDataset):
                  float(label[13]), 1.0])
 
             points = center @ np.linalg.inv(calib['world_cam'])
+
+            # adjust x and y axis (velodyne) to centre
+            points[0] = points[0] - 4
+            points[1] = points[1] - 12
 
             size = [float(label[9]), float(label[8]), float(label[10])]  # w,h,l
             center = [points[0], points[1], size[1] / 2 + points[2]]
@@ -274,11 +310,12 @@ class KITTISplit():
         calib = self.dataset.read_calib(calib_path)
         label = self.dataset.read_label(label_path, calib)
 
-        reduced_pc = DataProcessing.remove_outside_points(
-            pc, calib['world_cam'], calib['cam_img'], [375, 1242])
+        # Comment out reduced_pc. Use all points as we don't have images to project
+        # reduced_pc = DataProcessing.remove_outside_points(
+        #     pc, calib['world_cam'], calib['cam_img'], [375, 1242])
 
         data = {
-            'point': reduced_pc,
+            'point': pc,
             'full_point': pc,
             'feat': None,
             'calib': calib,
@@ -343,9 +380,10 @@ class Object3d(BEVBox3D):
         elif height >= 25 and self.truncation <= 0.5 and self.occlusion <= 2:
             self.level_str = 'Hard'
             return 2  # Hard
+        # Add custom difficulity for data without first 7 values in kitti label files
         else:
-            self.level_str = 'UnKnown'
-            return -1
+            self.level_str = 'Custom'
+            return 3
 
     def to_str(self):
         print_str = '%s %.3f %.3f %.3f box2d: %s hwl: [%.3f %.3f %.3f] pos: %s ry: %.3f' \
