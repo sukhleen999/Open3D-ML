@@ -178,7 +178,7 @@ class KITTI(BaseDataset):
             size = [float(label[9]), float(label[8]), float(label[10])]  # w,h,l
             center = [points[0], points[1], size[1] / 2 + points[2]]
 
-            objects.append(Object3d(center, size, label, calib, recenter_offset))
+            objects.append(Object3d(center, size, label, calib))
 
         return objects
 
@@ -361,7 +361,7 @@ class Object3d(BEVBox3D):
     coordinates, occulusion and so on.
     """
 
-    def __init__(self, center, size, label, calib=None, recenter_offset=[0,0]):
+    def __init__(self, center, size, label, calib=None):
 
         confidence = float(label[15]) if label.__len__() == 16 else -1.0
 
