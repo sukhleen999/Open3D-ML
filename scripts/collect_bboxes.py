@@ -5,7 +5,7 @@ import pickle
 from open3d.ml.datasets import utils
 from open3d.ml import datasets
 import multiprocessing
-
+import sys
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -23,12 +23,33 @@ def parse_args():
                         default="KITTI",
                         required=False)
     parser.add_argument('--num_cpus',
-                        help='Name of dataset class',
+                        help='Number of CPUs',
                         type=int,
                         default=multiprocessing.cpu_count(),
                         required=False)
+    parser.add_argument('--ground_point_range',
+                        help='Ground point range',
+                        nargs="+",
+                        type=float,
+                        default=[-100, 100],
+                        required=False)
+    parser.add_argument('--downsample_step',
+                        help='Downsample step of ground points',
+                        type=int,
+                        default=1,
+                        required=False)          
+    parser.add_argument('--recenter_offset',
+                        help='X and Y offset of recentering point cloud',
+                        nargs="+",
+                        type=int,
+                        default=[0, 0],
+                        required=False)                                                              
 
     args = parser.parse_args()
+
+    if (args.downsample_step <=0):
+        print("Input error. Downsample steps must be greater than 0. Exiting.")
+        sys.exit(1)
 
     dict_args = vars(args)
     for k in dict_args:
@@ -82,7 +103,8 @@ if __name__ == '__main__':
     if out_path is None:
         out_path = args.dataset_path
     classname = getattr(datasets, args.dataset_type)
-    dataset = classname(args.dataset_path)
+    dataset = classname(args.dataset_path, args.ground_point_range, args.downsample_step,
+                        args.recenter_offset)
     train = dataset.get_split('train')
 
     print("Found", len(train), "traning samples")

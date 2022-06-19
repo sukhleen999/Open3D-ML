@@ -20,10 +20,13 @@ class KITTI(BaseDataset):
 
     def __init__(self,
                  dataset_path,
+                 ground_point_range=[-100, 100],
+                 downsample_step=1,
+                 recenter_offset=[0,0],
                  name='KITTI',
                  cache_dir='./logs/cache',
                  use_cache=False,
-                 val_split=2030,
+                #  val_split=2030,
                  test_result_folder='./test',
                  **kwargs):
         """Initialize the function by passing the dataset and other details.
@@ -44,7 +47,10 @@ class KITTI(BaseDataset):
                          name=name,
                          cache_dir=cache_dir,
                          use_cache=use_cache,
-                         val_split=val_split,
+                        #  val_split=val_split,
+                         ground_point_range=ground_point_range,
+                         downsample_step=downsample_step,
+                         recenter_offset=recenter_offset,
                          test_result_folder=test_result_folder,
                          **kwargs)
 
@@ -109,39 +115,39 @@ class KITTI(BaseDataset):
         # downsample ground points between -1 and 0.12
         data = np.fromfile(path, dtype=np.float32).reshape(-1, 4)
 
-        data_g = data[np.where(
-                    np.logical_and(data[:, 2] >= -1,
-                                        data[:, 2] < 0.12),
-                        )]
+        # data_g = data[np.where(
+        #             np.logical_and(data[:, 2] >= -1,
+        #                                 data[:, 2] < 0.12),
+        #                 )]
 
-        data_g = data_g[::150]
+        # data_g = data_g[::150]
 
         # set ground points intensity to 5000 maximizing contrasts
-        data_g[:,3]=5000
+        # data_g[:,3]=5000
 
         # all remaining points above ground
-        data = data[np.where(
-                np.logical_and(data[:, 2] >= 0.12,
-                                    data[:, 2] < 100),
-                    )]
+        # data = data[np.where(
+        #         np.logical_and(data[:, 2] >= 0.12,
+        #                             data[:, 2] < 100),
+        #             )]
 
         # merge data
-        data = np.concatenate([data, data_g])
+        # data = np.concatenate([data, data_g])
 
         # normalize intensity
-        quantile = 95
-        intensities = data[:, 3]
-        intensity_scaler = np.quantile(intensities, quantile*1e-2)
-        data[:,3] = np.array([x if x <=1 else 1 for x in intensities / intensity_scaler])
+        # quantile = 95
+        # intensities = data[:, 3]
+        # intensity_scaler = np.quantile(intensities, quantile*1e-2)
+        # data[:,3] = np.array([x if x <=1 else 1 for x in intensities / intensity_scaler])
         
         # adjust x and y axis (velodyne) to centre
-        data[:, 0] = data[:, 0] - 4
-        data[:, 1] = data[:, 1] - 12
+        # data[:, 0] = data[:, 0] - 4
+        # data[:, 1] = data[:, 1] - 12
 
         return data
 
     @staticmethod
-    def read_label(path, calib):
+    def read_label(path, calib, recenter_offset):
         """Reads labels of bound boxes.
 
         Returns:
@@ -165,13 +171,14 @@ class KITTI(BaseDataset):
             points = center @ np.linalg.inv(calib['world_cam'])
 
             # adjust x and y axis (velodyne) to centre
-            points[0] = points[0] - 4
-            points[1] = points[1] - 12
+
+            points[0] = points[0] - recenter_offset[0]
+            points[1] = points[1] - recenter_offset[1]
 
             size = [float(label[9]), float(label[8]), float(label[10])]  # w,h,l
             center = [points[0], points[1], size[1] / 2 + points[2]]
 
-            objects.append(Object3d(center, size, label, calib))
+            objects.append(Object3d(center, size, label, calib, recenter_offset))
 
         return objects
 
@@ -291,7 +298,7 @@ class KITTI(BaseDataset):
             path = join(self.cfg.test_result_folder, name + '.txt')
             f = open(path, 'w')
             for box in res:
-                f.write(box.to_kitti_format(box.confidence))
+                f.write(box.to_kitti_format(box.confidence, self.cfg.recenter_offset))
                 f.write('\n')
 
 
@@ -318,14 +325,21 @@ class KITTISplit():
 
         pc = self.dataset.read_lidar(pc_path)
         calib = self.dataset.read_calib(calib_path)
-        label = self.dataset.read_label(label_path, calib)
+        label = self.dataset.read_label(label_path, calib, self.cfg.recenter_offset)
 
         # Comment out reduced_pc. Use all points as we don't have images to project
         # reduced_pc = DataProcessing.remove_outside_points(
         #     pc, calib['world_cam'], calib['cam_img'], [375, 1242])
 
+        # Downsample ground points
+        reduced_pc = DataProcessing.downsample_ground_points(pc, self.cfg.ground_point_range, 
+                        self.cfg.downsample_step)
+                        
+        # recenter point cloud
+        reduced_pc = DataProcessing.recenter_pc(reduced_pc, self.cfg.recenter_offset)
+
         data = {
-            'point': pc,
+            'point': reduced_pc,
             'full_point': pc,
             'feat': None,
             'calib': calib,
@@ -347,7 +361,8 @@ class Object3d(BEVBox3D):
     coordinates, occulusion and so on.
     """
 
-    def __init__(self, center, size, label, calib=None):
+    def __init__(self, center, size, label, calib=None, recenter_offset=[0,0]):
+
         confidence = float(label[15]) if label.__len__() == 16 else -1.0
 
         world_cam = calib['world_cam']

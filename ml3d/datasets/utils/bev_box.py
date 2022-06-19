@@ -59,7 +59,7 @@ class BEVBox3D(BoundingBox3D):
         self.level = self.get_difficulty()
         self.dis_to_cam = np.linalg.norm(self.to_camera()[:3])
 
-    def to_kitti_format(self, score=1.0):
+    def to_kitti_format(self, score=1.0, recenter_offset=[0,0]):
         """This method transforms the class to KITTI format."""
         box2d = self.to_img()
         box2d[2:] += box2d[:2]  # Add w, h.
@@ -70,15 +70,23 @@ class BEVBox3D(BoundingBox3D):
         size = box[3:6]
         ry = box[6]
 
+        # restore offset for kitti output. In image_2 coordinates
+        offset_x = -recenter_offset[1]
+        offset_z = recenter_offset[0]
+        
         x, z = center[0], center[2]
         beta = np.arctan2(z, x)
         alpha = -np.sign(beta) * np.pi / 2 + beta + ry
 
         # # adjust x and z axis (camera) back to carpark location
+        # kitti_str = '%s %.2f %d %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f' \
+        #             % (self.label_class, 0, 0, 0, 0, 0,
+        #                0, 0, size[0], size[1], size[2], center[0], center[1], center[2],
+        #                ry, score)
         kitti_str = '%s %.2f %d %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f' \
                     % (self.label_class, 0, 0, 0, 0, 0,
-                       0, 0, size[0], size[1], size[2], center[0]-12, center[1], center[2]+4,
-                       ry, score)
+                       0, 0, size[0], size[1], size[2], center[0]+offset_x, center[1], center[2]+offset_z,
+                       ry, score)                       
         return kitti_str
 
     def generate_corners3d(self):
@@ -179,13 +187,16 @@ class BEVBox3D(BoundingBox3D):
         if self.cam_img is None:
             return 0
 
-        heights = [40, 25, 1]
+        heights = [40, 25, 25, 1]
         height = self.to_img()[3] + 1
         diff = -1
         for j in range(len(heights)):
             if height >= heights[j]:
                 diff = j
                 break
+
+
+        # print(f"difficulty: {diff}")
         return diff
 
     def to_dict(self):

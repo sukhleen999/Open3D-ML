@@ -242,3 +242,58 @@ class DataProcessing:
         valid = np.logical_and(val_flag_merge, depth >= 0)
 
         return points[valid]
+
+    @staticmethod
+    def downsample_ground_points(data, ground_point_range, downsample_step):
+        """Downsample ground points and normalize intensity.
+
+        Args:
+            data (np.ndarray, shape=[N, 3+dims]): Total points.
+            ground_point_range ((list[int])): Ground point range.
+            downsample_step (int): Downsample steps of removing ground points.
+
+        Returns:
+            np.ndarray, shape=[N, 3+dims]: Filtered points.
+        """
+
+        data_g = data[np.where(
+            np.logical_and(data[:, 2] >= ground_point_range[0],
+                                data[:, 2] < ground_point_range[1]),
+                )]
+
+        data_g = data_g[::downsample_step]
+
+        # set ground points intensity to 5000 maximizing contrasts
+        data_g[:,3]=5000
+
+        # all remaining points above ground
+        data = data[np.where(data[:, 2] >= ground_point_range[1])]
+
+        # merge data
+        data = np.concatenate([data, data_g])
+
+        # normalize intensity
+        quantile = 95
+        intensities = data[:, 3]
+        intensity_scaler = np.quantile(intensities, quantile*1e-2)
+        data[:,3] = np.array([x if x <=1 else 1 for x in intensities / intensity_scaler])  
+
+        return data        
+
+    @staticmethod
+    def recenter_pc(data, recenter_offset):
+        """Recenter point cloud for balanced x and y range.
+
+        Args:
+            data (np.ndarray, shape=[N, 3+dims]): Total points.
+            recenter_offset ((list[int])): x and y offset value.
+
+        Returns:
+            np.ndarray, shape=[N, 3+dims]: Filtered points.
+        """
+
+        # adjust x and y axis (velodyne) to centre
+        data[:, 0] = data[:, 0] - recenter_offset[0]
+        data[:, 1] = data[:, 1] - recenter_offset[1] 
+
+        return data
