@@ -26,18 +26,17 @@ class KITTI(BaseDataset):
                  name='KITTI',
                  cache_dir='./logs/cache',
                  use_cache=False,
-                #  val_split=2030,
                  test_result_folder='./test',
                  **kwargs):
         """Initialize the function by passing the dataset and other details.
 
         Args:
             dataset_path: The path to the dataset to use.
+            ground_point_range: list - The range of ground points to downsample
+            downsample_step: int - The steps to skips per ground points
+            recenter_offset: list - x and y offset value to shift point cloud range
             name: The name of the dataset (KITTI in this case).
             cache_dir: The directory where the cache is stored.
-            use_cache: Indicates if the dataset should be cached.
-            val_split: The split value to get a set of images for training,
-            validation, for testing.
             test_result_folder: Path to store test output.
 
         Returns:
@@ -47,7 +46,6 @@ class KITTI(BaseDataset):
                          name=name,
                          cache_dir=cache_dir,
                          use_cache=use_cache,
-                        #  val_split=val_split,
                          ground_point_range=ground_point_range,
                          downsample_step=downsample_step,
                          recenter_offset=recenter_offset,

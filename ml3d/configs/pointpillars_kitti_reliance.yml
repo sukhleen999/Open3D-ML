@@ -2,14 +2,16 @@ dataset:
   name: KITTI
   dataset_path: ../Data/v2_data/split # path/to/your/dataset
   cache_dir: ./logs/cache
+  test_result_folder: ../test_results
   steps_per_epoch_train: 5000
   ground_point_range: [-1, 0.12]
-  downsample_step: 10
+  downsample_step: 150
   recenter_offset: [4, 12]
 
 model:
   name: PointPillars
   ckpt_path: # path/to/your/checkpoint
+  ckpt_path_dir: ../checkpoint
   is_resume: True
 
   batcher: "ignore"
@@ -31,7 +33,8 @@ model:
   voxelize:
     max_num_points: 32
     voxel_size: &vsize
-      [0.08, 0.08, 2]
+      # [0.08, 0.08, 2]
+      [0.16, 0.16, 2]      
     max_voxels: [16000, 40000]
 
   voxel_encoder:
@@ -41,7 +44,8 @@ model:
 
   scatter:
     in_channels: 64
-    output_shape: [448, 256]
+    # output_shape: [448, 256]
+    output_shape: [224, 128]    
 
   backbone:
     in_channels: 64
@@ -88,7 +92,7 @@ pipeline:
   val_batch_size: 1
   test_batch_size: 1
   save_ckpt_freq: 5
-  max_epoch: 200
+  max_epoch: 15
   main_log_dir: ./logs
   train_sum_dir: train_log
   grad_clip_norm: 2
