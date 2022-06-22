@@ -293,7 +293,7 @@ class DataProcessing:
         """
 
         # adjust x and y axis (velodyne) to centre
-        data[:, 0] = data[:, 0] - recenter_offset[0]
-        data[:, 1] = data[:, 1] - recenter_offset[1] 
+        data[:, 0] = data[:, 0] + recenter_offset[0]
+        data[:, 1] = data[:, 1] + recenter_offset[1] 
 
         return data

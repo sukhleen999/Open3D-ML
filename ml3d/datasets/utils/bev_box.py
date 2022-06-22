@@ -85,7 +85,7 @@ class BEVBox3D(BoundingBox3D):
         #                ry, score)
         kitti_str = '%s %.2f %d %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f' \
                     % (self.label_class, 0, 0, 0, 0, 0,
-                       0, 0, size[0], size[1], size[2], center[0]+offset_x, center[1], center[2]+offset_z,
+                       0, 0, size[0], size[1], size[2], center[0]-offset_x, center[1], center[2]-offset_z,
                        ry, score)                       
         return kitti_str
 

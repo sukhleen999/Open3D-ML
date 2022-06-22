@@ -469,8 +469,11 @@ class ObjectDetection(BasePipeline):
                               label_to_names=label_to_names)
 
     def load_ckpt(self, ckpt_path=None, is_resume=True):
-        train_ckpt_dir = join(self.cfg.logs_dir, 'checkpoint')
+        # train_ckpt_dir = join(self.cfg.logs_dir, 'checkpoint')
+        train_ckpt_dir = self.model.cfg.ckpt_path_dir
+
         make_dir(train_ckpt_dir)
+        
 
         epoch = 0
         if ckpt_path is None:
@@ -499,7 +502,10 @@ class ObjectDetection(BasePipeline):
         return epoch
 
     def save_ckpt(self, epoch):
-        path_ckpt = join(self.cfg.logs_dir, 'checkpoint')
+
+        # path_ckpt = join(self.cfg.logs_dir, 'checkpoint')
+        path_ckpt = self.model.cfg.ckpt_path_dir
+
         make_dir(path_ckpt)
         torch.save(
             dict(epoch=epoch,

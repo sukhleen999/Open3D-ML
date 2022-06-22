@@ -59,19 +59,6 @@ class KITTI(BaseDataset):
         self.num_classes = 2
         self.label_to_names = self.get_label_to_names()
 
-        # self.all_files = glob(
-        #     join(cfg.dataset_path, 'training', 'velodyne', '*.bin'))
-        # self.all_files.sort()
-        # self.train_files = []
-        # self.val_files = []
-
-        # for f in self.all_files:
-        #     idx = int(Path(f).name.replace('.bin', ''))
-        #     if idx < cfg.val_split:
-        #         self.train_files.append(f)
-        #     else:
-        #         self.val_files.append(f)
-
         self.train_files = glob(
             join(cfg.dataset_path, 'training', 'velodyne', '*.bin'))
         self.train_files.sort()
@@ -93,7 +80,7 @@ class KITTI(BaseDataset):
             names.
         """
 
-        # change classes
+        # change classes to suit the dataset needs
         label_to_names = {
             0: 'human',
             1: 'car',
@@ -109,40 +96,7 @@ class KITTI(BaseDataset):
             A data object with lidar information.
         """
         assert Path(path).exists()
-
-        # downsample ground points between -1 and 0.12
-        data = np.fromfile(path, dtype=np.float32).reshape(-1, 4)
-
-        # data_g = data[np.where(
-        #             np.logical_and(data[:, 2] >= -1,
-        #                                 data[:, 2] < 0.12),
-        #                 )]
-
-        # data_g = data_g[::150]
-
-        # set ground points intensity to 5000 maximizing contrasts
-        # data_g[:,3]=5000
-
-        # all remaining points above ground
-        # data = data[np.where(
-        #         np.logical_and(data[:, 2] >= 0.12,
-        #                             data[:, 2] < 100),
-        #             )]
-
-        # merge data
-        # data = np.concatenate([data, data_g])
-
-        # normalize intensity
-        # quantile = 95
-        # intensities = data[:, 3]
-        # intensity_scaler = np.quantile(intensities, quantile*1e-2)
-        # data[:,3] = np.array([x if x <=1 else 1 for x in intensities / intensity_scaler])
-        
-        # adjust x and y axis (velodyne) to centre
-        # data[:, 0] = data[:, 0] - 4
-        # data[:, 1] = data[:, 1] - 12
-
-        return data
+        return np.fromfile(path, dtype=np.float32).reshape(-1, 4)
 
     @staticmethod
     def read_label(path, calib, recenter_offset):
@@ -170,8 +124,8 @@ class KITTI(BaseDataset):
 
             # adjust x and y axis (velodyne) to centre
 
-            points[0] = points[0] - recenter_offset[0]
-            points[1] = points[1] - recenter_offset[1]
+            points[0] = points[0] + recenter_offset[0]
+            points[1] = points[1] + recenter_offset[1]
 
             size = [float(label[9]), float(label[8]), float(label[10])]  # w,h,l
             center = [points[0], points[1], size[1] / 2 + points[2]]
@@ -195,7 +149,6 @@ class KITTI(BaseDataset):
             The camera and the camera image used in calibration.
         """
         assert Path(path).exists()
-
 
         with open(path, 'r') as f:
             lines = f.readlines()
@@ -324,10 +277,6 @@ class KITTISplit():
         pc = self.dataset.read_lidar(pc_path)
         calib = self.dataset.read_calib(calib_path)
         label = self.dataset.read_label(label_path, calib, self.cfg.recenter_offset)
-
-        # Comment out reduced_pc. Use all points as we don't have images to project
-        # reduced_pc = DataProcessing.remove_outside_points(
-        #     pc, calib['world_cam'], calib['cam_img'], [375, 1242])
 
         # Downsample ground points
         reduced_pc = DataProcessing.downsample_ground_points(pc, self.cfg.ground_point_range, 
